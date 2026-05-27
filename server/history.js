@@ -4,9 +4,7 @@ import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const HISTORY_DIR = process.env.VERCEL
-  ? path.join('/tmp', 'discharge-summary-history')
-  : path.join(__dirname, '..', 'data', 'history');
+export const HISTORY_DIR = path.join(__dirname, '..', 'data', 'history');
 
 function ensureHistoryDir() {
   fs.mkdirSync(HISTORY_DIR, { recursive: true });

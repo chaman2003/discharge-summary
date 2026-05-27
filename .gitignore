@@ -1,7 +1,5 @@
-node_modules/
-dist/
-.env
-.env.local
-.vercel
-data/history/*
-!data/history/.gitkeep
+node_modules/
+dist/
+.env
+data/history/*
+!data/history/.gitkeep
