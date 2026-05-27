@@ -1,0 +1,16 @@
+services:
+  discharge-summary:
+    build: .
+    ports:
+      - "${PORT:-8787}:${PORT:-8787}"
+    env_file:
+      - .env
+    environment:
+      PORT: ${PORT:-8787}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    volumes:
+      - discharge-history:/app/data/history
+    restart: unless-stopped
+
+volumes:
+  discharge-history:

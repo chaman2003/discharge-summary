@@ -1,0 +1,28 @@
+{
+  "id": "13096267-cbaf-4859-8503-7d8eb70bc890",
+  "created_at": "2026-05-27T07:09:07.203Z",
+  "updated_at": "2026-05-27T07:09:09.145Z",
+  "transcript": "Get any fever, cold or something. So yeah, make sure to follow us up. Every week. Until you are.",
+  "hospital": {
+    "hospital_name": "Smile Care Hospital",
+    "patient_name": "Kumar",
+    "consulting_doctor": "Dr. Priya Sharma",
+    "department": "General Medicine",
+    "condition": "Malaria",
+    "age": "58",
+    "blood_group": "B+",
+    "gender": "Male",
+    "admission_date": "2026-05-20",
+    "discharge_date": "2026-05-27"
+  },
+  "summary": {
+    "hospital_details": "Smile Care Hospital",
+    "master_summary": "Mr. Kumar, a 58-year-old male with blood group B+, was admitted to Smile Care Hospital on May 20, 2026, under the Department of General Medicine for the treatment of Malaria. He was discharged on May 27, 2026, in stable condition. The consulting doctor was Dr. Priya Sharma.",
+    "reason_for_admission": "The patient was admitted due to Malaria.",
+    "final_diagnosis": "Malaria",
+    "prescription": "",
+    "instructions": "The patient is advised to follow up weekly until fully recovered.",
+    "condition_at_discharge": "The patient's condition at discharge was stable.",
+    "follow_up": "Weekly follow-up appointments are scheduled until the patient is well."
+  }
+}
