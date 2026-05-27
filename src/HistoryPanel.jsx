@@ -15,7 +15,14 @@ function formatWhen(iso) {
   });
 }
 
-export default function HistoryPanel({ onLoadEntry }) {
+function downloadAudio(id, filename) {
+  const link = document.createElement('a');
+  link.href = historyAudioUrl(id);
+  link.download = filename;
+  link.click();
+}
+
+export default function HistoryPanel() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,18 +43,6 @@ export default function HistoryPanel({ onLoadEntry }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
-
-  const handleOpen = async (id) => {
-    setBusyId(id);
-    try {
-      const entry = await fetchHistoryEntry(id);
-      onLoadEntry(entry);
-    } catch (err) {
-      setError(err.message || 'Could not open entry');
-    } finally {
-      setBusyId('');
-    }
-  };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this saved session?')) return;
@@ -119,9 +114,6 @@ export default function HistoryPanel({ onLoadEntry }) {
                 </div>
                 <p className="history-preview">{item.transcript_preview || 'No transcript saved.'}</p>
                 <div className="actions history-actions">
-                  <button type="button" className="primary" disabled={busyId === item.id} onClick={() => handleOpen(item.id)}>
-                    Open
-                  </button>
                   <button type="button" className="outline" disabled={busyId === item.id} onClick={() => handleDownloadTranscript(item.id)}>
                     Transcript PDF
                   </button>
@@ -133,9 +125,16 @@ export default function HistoryPanel({ onLoadEntry }) {
                   >
                     Summary PDF
                   </button>
-                  <a className="outline link-btn" href={historyAudioUrl(item.id)} download={`${item.patient_name || 'recording'}.webm`}>
-                    Download audio
-                  </a>
+                  {item.has_audio && (
+                    <button
+                      type="button"
+                      className="outline"
+                      disabled={busyId === item.id}
+                      onClick={() => downloadAudio(item.id, `${item.patient_name || 'recording'}.webm`)}
+                    >
+                      Download audio
+                    </button>
+                  )}
                   <button type="button" className="ghost" disabled={busyId === item.id} onClick={() => handleDelete(item.id)}>
                     Delete
                   </button>

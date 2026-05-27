@@ -32,8 +32,6 @@ function fieldToString(value) {
   }
   if (typeof value === 'object') {
     const labels = {
-      hospital_name: 'Hospital',
-      hospital: 'Hospital',
       patient_name: 'Patient',
       patient: 'Patient',
       consulting_doctor: 'Consulting doctor',
@@ -51,6 +49,7 @@ function fieldToString(value) {
     };
     return Object.entries(value)
       .map(([key, item]) => {
+        if (/hospital/i.test(key)) return '';
         const text = fieldToString(item);
         if (!text) return '';
         const label = labels[key] || key.replace(/_/g, ' ');
@@ -63,10 +62,9 @@ function fieldToString(value) {
   return isCorruptedSummaryText(asString) ? '' : asString;
 }
 
-function hospitalBlockFromForm(hospital) {
+function patientBlockFromForm(hospital) {
   if (!hospital) return '';
   const parts = [
-    hospital.hospital_name && `Hospital: ${hospital.hospital_name}`,
     hospital.patient_name && `Patient: ${hospital.patient_name}`,
     hospital.consulting_doctor && `Consulting doctor: ${hospital.consulting_doctor}`,
     hospital.department && `Department: ${hospital.department}`,
@@ -134,7 +132,7 @@ function buildMasterSummaryFromTranscript(transcript) {
 
 function postFillSummary(summary, { transcript = '', hospital = {}, hospitalHint = '' } = {}) {
   const result = { ...summary };
-  const formBlock = hospitalHint || hospitalBlockFromForm(hospital);
+  const formBlock = hospitalHint || patientBlockFromForm(hospital);
 
   result.hospital_details = formBlock || result.hospital_details;
 

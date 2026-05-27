@@ -45,7 +45,6 @@ export function getConfig() {
 function hospitalHint(hospital) {
   if (!hospital) return '';
   const lines = [
-    hospital.hospital_name ? `Hospital: ${hospital.hospital_name}` : '',
     hospital.patient_name ? `Patient: ${hospital.patient_name}` : '',
     hospital.consulting_doctor ? `Consulting doctor: ${hospital.consulting_doctor}` : '',
     hospital.department ? `Department: ${hospital.department}` : '',
@@ -53,8 +52,8 @@ function hospitalHint(hospital) {
     hospital.age ? `Age: ${hospital.age}` : '',
     hospital.blood_group ? `Blood group: ${hospital.blood_group}` : '',
     hospital.gender ? `Gender: ${hospital.gender}` : '',
-    hospital.admission_date ? `Admission date: ${hospital.admission_date}` : '',
-    hospital.discharge_date ? `Discharge date: ${hospital.discharge_date}` : '',
+    hospital.admission_date ? `Admission: ${hospital.admission_date}` : '',
+    hospital.discharge_date ? `Discharge: ${hospital.discharge_date}` : '',
   ].filter(Boolean);
   return lines.join('\n');
 }

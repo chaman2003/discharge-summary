@@ -1,5 +1,5 @@
 export const DISCHARGE_SUMMARY_JSON_SCHEMA = {
-  hospital_details: 'Hospital name, patient name, consulting doctor, department, diagnosis/cause, age, blood group, gender, dates, ward/unit if mentioned',
+  hospital_details: 'Patient name, consulting doctor, department, diagnosis/cause, age, blood group, gender, admission and discharge dates',
   master_summary: 'Narrative summary of the entire discharge conversation',
   reason_for_admission: 'Why the patient was admitted',
   final_diagnosis: 'Primary diagnosis or working diagnosis at discharge',
@@ -13,14 +13,14 @@ export function buildSummarizePrompt({ transcript, uploadedContext = '', hospita
   let contextBlock = '';
   if (uploadedContext.trim()) {
     contextBlock =
-      '\n\nREFERENCE DOCUMENT (use only facts that appear here or in the transcript):\n' +
+      '\n\nREFERENCE DOCUMENT (incorporate relevant clinical facts from this attachment into the appropriate summary fields — diagnosis, medications, instructions, follow-up, etc.):\n' +
       uploadedContext.trim().slice(0, 12000);
   }
 
   let hintBlock = '';
   if (hospitalHint.trim()) {
     hintBlock =
-      '\n\nKNOWN HOSPITAL / PATIENT CONTEXT FROM THE FORM (copy ALL of these facts into hospital_details exactly, one per line):\n' +
+      '\n\nKNOWN PATIENT CONTEXT FROM THE FORM (copy ALL of these facts into hospital_details exactly, one per line — do NOT include hospital name):\n' +
       hospitalHint.trim();
   }
 
@@ -37,13 +37,15 @@ Return ONLY valid JSON (no markdown fences) with exactly these string fields:
 
 Rules:
 - Every field value MUST be a plain string, never a nested JSON object or array.
-- hospital_details MUST repeat every form field provided (hospital, patient, doctor, department, diagnosis, age, gender, blood group, admission date, discharge date), one per line.
+- Do NOT include the hospital name anywhere. The hospital letterhead is added separately.
+- hospital_details is PATIENT DETAILS only: patient, consulting doctor, department, diagnosis/cause, age, gender, blood group, admission date, discharge date — one fact per line, no duplicates.
 - master_summary MUST summarize the full discharge conversation/transcript as a cohesive clinical narrative (who was seen, why admitted, treatment course, advice given, follow-up).
-- prescription MUST NOT be empty if the conversation mentions medicines, doses, continuing treatment, or standard discharge therapy for the diagnosis. Quote or paraphrase any medications discussed. If only general treatment is implied, state the discharge medication plan in prose.
+- If a reference document is provided, merge its relevant facts into the correct fields (prescription, diagnosis, instructions, follow-up) when supported by the transcript or attachment.
+- prescription MUST NOT be empty if the conversation or reference document mentions medicines, doses, continuing treatment, or standard discharge therapy for the diagnosis.
 - Use clear, professional prose in each field (complete sentences, not bullet lists inside JSON strings).
-- Extract clinical facts from the transcript and reference document. Use form context for demographic/hospital metadata.
-- Do not omit clinically relevant statements from the transcript. Every distinct topic in the conversation should appear in at least one summary field.
-- instructions and follow_up must reflect advice given in the conversation (e.g. weekly follow-up, fever monitoring, mask use).
+- Extract clinical facts from the transcript and reference document. Use form context for patient demographics and dates.
+- Do not omit clinically relevant statements from the transcript. Every distinct topic should appear in at least one summary field.
+- instructions and follow_up must reflect advice given in the conversation or reference document.
 - Never invent diagnoses, drugs, or dates not supported by the transcript, reference document, or form context.
 ${hintBlock}${contextBlock}
 

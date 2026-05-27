@@ -74,6 +74,7 @@ function createTranscriptBuffer() {
   const setPartial = (ws, text) => {
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
     if (!clean) {
+      currentPartial = '';
       emitPayload(ws, { final: false });
       return;
     }
@@ -81,15 +82,19 @@ function createTranscriptBuffer() {
     const prior = priorPlainText();
     if (!prior) {
       currentPartial = clean;
-      lastTurnBase = '';
     } else if (clean.startsWith(prior)) {
-      currentPartial = clean.slice(prior.length).trim() || clean;
-      lastTurnBase = prior;
+      currentPartial = clean.slice(prior.length).trim();
     } else if (prior.startsWith(clean)) {
       // ignore regressive partial
     } else {
-      currentPartial = clean;
-      lastTurnBase = prior;
+      const overlap = Math.min(prior.length, clean.length, 120);
+      const priorTail = prior.slice(-overlap);
+      const idx = clean.indexOf(priorTail);
+      if (idx >= 0) {
+        currentPartial = clean.slice(idx + priorTail.length).trim() || clean;
+      } else {
+        currentPartial = clean;
+      }
     }
 
     emitPayload(ws, { final: false });

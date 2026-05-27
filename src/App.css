@@ -271,7 +271,14 @@ textarea::placeholder {
   resize: vertical;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   background: var(--surface-muted);
+}
+
+.transcript.recording {
+  min-height: 280px;
+  max-height: 420px;
+  overflow-y: auto;
 }
 
 .recording-note {
@@ -575,6 +582,11 @@ button:disabled,
 
 .history-actions {
   margin-top: 0;
+  flex-wrap: wrap;
+}
+
+.history-actions button {
+  min-width: 0;
 }
 
 .history-audio {

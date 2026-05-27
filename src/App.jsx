@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { extractUpload, saveHistoryEntry, summarize, updateHistoryEntry } from './api';
 import HistoryPanel from './HistoryPanel';
-import { downloadSummaryPdf, downloadTranscriptPdf, printSummary } from './pdf';
-import { normalizeSummaryForDisplay } from './transcriptUtils';
+import { HOSPITAL_NAME } from './constants';
+import { downloadSummaryPdf, printSummary } from './pdf';
+import { buildPatientBlock, normalizeSummaryForDisplay } from './transcriptUtils';
 import { useLiveTranscript } from './useLiveTranscript';
 
 const EMPTY_SUMMARY = {
@@ -35,12 +36,12 @@ function formatDateInput(date) {
   return date.toISOString().slice(0, 10);
 }
 
-function defaultHospitalDetails() {
+function defaultPatientDetails() {
   const today = new Date();
   const admission = new Date(today);
   admission.setDate(admission.getDate() - 7);
   return {
-    hospital_name: 'Smile Care Hospital',
+    hospital_name: HOSPITAL_NAME,
     patient_name: 'Kumar',
     consulting_doctor: 'Dr. Priya Sharma',
     department: 'General Medicine',
@@ -51,22 +52,6 @@ function defaultHospitalDetails() {
     admission_date: formatDateInput(admission),
     discharge_date: formatDateInput(today),
   };
-}
-
-function hospitalBlockFromForm(hospital) {
-  const parts = [
-    hospital.hospital_name && `Hospital: ${hospital.hospital_name}`,
-    hospital.patient_name && `Patient: ${hospital.patient_name}`,
-    hospital.consulting_doctor && `Consulting doctor: ${hospital.consulting_doctor}`,
-    hospital.department && `Department: ${hospital.department}`,
-    hospital.condition && `Diagnosis / cause: ${hospital.condition}`,
-    hospital.age && `Age: ${hospital.age}`,
-    hospital.blood_group && `Blood group: ${hospital.blood_group}`,
-    hospital.gender && `Gender: ${hospital.gender}`,
-    hospital.admission_date && `Admission: ${hospital.admission_date}`,
-    hospital.discharge_date && `Discharge: ${hospital.discharge_date}`,
-  ].filter(Boolean);
-  return parts.join('\n');
 }
 
 function StatusAlert({ message, error }) {
@@ -82,12 +67,13 @@ export default function App() {
   const [uploadedContext, setUploadedContext] = useState('');
   const [uploadName, setUploadName] = useState('');
   const [summary, setSummary] = useState(EMPTY_SUMMARY);
-  const [hospital, setHospital] = useState(defaultHospitalDetails);
+  const [hospital, setHospital] = useState(defaultPatientDetails);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
   const [historyTick, setHistoryTick] = useState(0);
   const [manualTranscript, setManualTranscript] = useState('');
+  const transcriptRef = useRef(null);
 
   const {
     recording,
@@ -100,20 +86,26 @@ export default function App() {
   } = useLiveTranscript();
 
   const transcript = recording ? liveTranscript : (manualTranscript || liveTranscript);
-  const hospitalBlock = useMemo(() => hospitalBlockFromForm(hospital), [hospital]);
+  const patientBlock = useMemo(() => buildPatientBlock(hospital), [hospital]);
   const displaySummary = useMemo(
-    () => normalizeSummaryForDisplay(summary, hospitalBlock),
-    [summary, hospitalBlock],
+    () => normalizeSummaryForDisplay(summary, patientBlock),
+    [summary, patientBlock],
   );
   const hasSummary = Object.values(displaySummary).some(Boolean);
-  const hospitalDetailsText = displaySummary.hospital_details || hospitalBlock;
+  const patientDetailsText = displaySummary.hospital_details || patientBlock;
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (!el || !recording) return;
+    el.scrollTop = el.scrollHeight;
+  }, [transcript, recording]);
 
   const saveRecordingToHistory = useCallback(async (savedTranscript, audioBlob, summaryPayload = null) => {
     if (!savedTranscript && !audioBlob) return null;
     const entry = await saveHistoryEntry({
       audioBlob,
       transcript: savedTranscript,
-      hospital,
+      hospital: { ...hospital, hospital_name: HOSPITAL_NAME },
       summary: summaryPayload,
     });
     setActiveHistoryId(entry.id);
@@ -125,42 +117,20 @@ export default function App() {
     const result = await summarize({
       transcript: text,
       uploadedContext,
-      hospital,
+      hospital: { ...hospital, hospital_name: HOSPITAL_NAME },
     });
-    const nextSummary = normalizeSummaryForDisplay({ ...EMPTY_SUMMARY, ...result }, hospitalBlock);
+    const nextSummary = normalizeSummaryForDisplay({ ...EMPTY_SUMMARY, ...result }, patientBlock);
     setSummary(nextSummary);
     if (historyId) {
       await updateHistoryEntry(historyId, {
         transcript: text,
-        hospital,
+        hospital: { ...hospital, hospital_name: HOSPITAL_NAME },
         summary: nextSummary,
       });
       setHistoryTick((n) => n + 1);
     }
     return nextSummary;
-  }, [activeHistoryId, hospital, hospitalBlock, uploadedContext]);
-
-  const handleStopRecord = async () => {
-    setBusy(true);
-    setStatus('Saving recording…');
-    try {
-      const result = await stopRecord();
-      const audioBlob = result?.audioBlob || null;
-      const savedTranscript = (result?.transcript || transcript).trim();
-      setManualTranscript(savedTranscript);
-      setTranscriptText(savedTranscript);
-      if (!savedTranscript && !audioBlob) {
-        setStatus('Recording stopped.');
-        return;
-      }
-      await saveRecordingToHistory(savedTranscript, audioBlob, hasSummary ? displaySummary : null);
-      setStatus('Recording saved to history.');
-    } catch (err) {
-      setStatus(err.message || 'Could not save recording');
-    } finally {
-      setBusy(false);
-    }
-  };
+  }, [activeHistoryId, hospital, patientBlock, uploadedContext]);
 
   const handleStopAndGenerateSummary = async () => {
     setBusy(true);
@@ -190,7 +160,7 @@ export default function App() {
 
       setStatus('Generating structured summary…');
       await runSummarize(text, historyId);
-      setStatus('Summary ready. Download PDFs below.');
+      setStatus('Summary ready.');
     } catch (err) {
       setStatus(err.message || 'Could not stop and generate summary');
     } finally {
@@ -208,7 +178,7 @@ export default function App() {
       const data = await extractUpload(file);
       setUploadedContext(data.text || '');
       setUploadName(data.filename || file.name);
-      setStatus('Reference document loaded. It will be included when you generate the summary.');
+      setStatus('Reference document loaded. It will be included when the summary is generated.');
     } catch (err) {
       setStatus(err.message || 'Upload failed');
     } finally {
@@ -216,54 +186,11 @@ export default function App() {
     }
   };
 
-  const onGenerateSummary = async () => {
-    if (!transcript.trim()) {
-      setStatus('Record or type a transcript first.');
-      return;
-    }
-    setBusy(true);
-    setStatus('Generating structured summary…');
-    try {
-      await runSummarize(transcript.trim());
-      setStatus('Summary ready. Download PDFs below.');
-    } catch (err) {
-      setStatus(err.message || 'Summary failed');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const loadHistoryEntry = useCallback(async (entry) => {
-    const text = entry.transcript || '';
-    const hospitalData = { ...defaultHospitalDetails(), ...(entry.hospital || {}) };
-    const block = hospitalBlockFromForm(hospitalData);
-    const normalized = normalizeSummaryForDisplay({ ...EMPTY_SUMMARY, ...(entry.summary || {}) }, block);
-
-    setManualTranscript(text);
-    setTranscriptText(text);
-    setHospital(hospitalData);
-    setSummary(normalized);
-    setActiveHistoryId(entry.id);
-    setStatus('Loaded saved session from history.');
-
-    if (entry.summary && entry.id) {
-      const rawHadCorruption = Object.values(entry.summary).some(
-        (value) => typeof value === 'string' && /^\[object Object\]$/i.test(value.trim()),
-      );
-      if (rawHadCorruption) {
-        try {
-          await updateHistoryEntry(entry.id, { summary: normalized });
-          setHistoryTick((n) => n + 1);
-        } catch {}
-      }
-    }
-  }, [setTranscriptText]);
-
   return (
     <div className="app">
       <header className="app-header">
         <div className="app-header-text">
-          <p className="app-kicker">Clinical documentation</p>
+          <p className="app-kicker">{HOSPITAL_NAME}</p>
           <h1>Discharge Summary</h1>
           <p>Record notes, attach a reference file, and generate a structured discharge summary.</p>
         </div>
@@ -278,16 +205,12 @@ export default function App() {
 
       <section className="card">
         <div className="card-header">
-          <h2><span className="step-num">1</span> Hospital details</h2>
+          <h2><span className="step-num">1</span> Patient details</h2>
         </div>
         <div className="card-body">
           <div className="form-section">
-            <h3 className="subsection-title">Facility &amp; patient</h3>
+            <h3 className="subsection-title">Patient information</h3>
             <div className="form-grid">
-              <label>
-                Hospital name
-                <input value={hospital.hospital_name} onChange={(e) => setHospital({ ...hospital, hospital_name: e.target.value })} />
-              </label>
               <label>
                 Patient name
                 <input value={hospital.patient_name} onChange={(e) => setHospital({ ...hospital, patient_name: e.target.value })} />
@@ -364,6 +287,7 @@ export default function App() {
                 onClick={() => {
                   resetTranscript();
                   setManualTranscript('');
+                  setSummary(EMPTY_SUMMARY);
                   startRecord();
                 }}
                 disabled={busy}
@@ -371,7 +295,7 @@ export default function App() {
                 Start recording
               </button>
             ) : (
-              <span className="recording-note">Recording in progress — use the transcript section to stop and generate.</span>
+              <span className="recording-note">Recording in progress — stop from the transcript section to generate the summary automatically.</span>
             )}
             <label className="file-btn">
               Upload reference (PDF, TXT, MD)
@@ -405,7 +329,8 @@ export default function App() {
         </div>
         <div className="card-body">
           <textarea
-            className="transcript"
+            ref={transcriptRef}
+            className={`transcript${recording ? ' recording' : ''}`}
             value={transcript}
             readOnly={recording}
             onChange={(e) => {
@@ -414,10 +339,10 @@ export default function App() {
               setTranscriptText(value);
               setActiveHistoryId(null);
             }}
-            placeholder="Each spoken turn appears on its own line with a timestamp (e.g. [0:05]). You can edit before generating a summary."
+            placeholder="Each spoken turn appears on its own line with a timestamp (e.g. [0:05]). The summary is generated automatically when you stop recording."
           />
-          <div className={`actions transcript-actions${recording ? ' recording-active' : ''}`}>
-            {recording ? (
+          {recording && (
+            <div className="actions transcript-actions recording-active">
               <button
                 type="button"
                 className="danger stop-generate-btn"
@@ -426,15 +351,8 @@ export default function App() {
               >
                 Stop recording and generate summary
               </button>
-            ) : (
-              <button type="button" className="primary" onClick={onGenerateSummary} disabled={busy || !transcript.trim()}>
-                Generate summary
-              </button>
-            )}
-            <button type="button" className="outline" onClick={() => downloadTranscriptPdf(transcript, hospital)} disabled={!transcript.trim()}>
-              Download transcript PDF
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -446,7 +364,7 @@ export default function App() {
               type="button"
               className="outline"
               onClick={() => printSummary(displaySummary, hospital)}
-              disabled={!hasSummary && !hospitalDetailsText}
+              disabled={!hasSummary && !patientDetailsText}
             >
               Print summary
             </button>
@@ -454,23 +372,23 @@ export default function App() {
               type="button"
               className="outline"
               onClick={() => downloadSummaryPdf(displaySummary, hospital)}
-              disabled={!hasSummary && !hospitalDetailsText}
+              disabled={!hasSummary && !patientDetailsText}
             >
               Download summary PDF
             </button>
           </div>
         </div>
         <div className="card-body">
-          {!hasSummary && !hospitalDetailsText ? (
+          {!hasSummary && !patientDetailsText ? (
             <div className="empty-state">
-              Generate a summary from your transcript to see structured clinical sections here.
+              Stop recording to generate a structured discharge summary here.
             </div>
           ) : (
             <div className="summary-grid">
               <div className="summary-block">
-                <h3>Hospital Details</h3>
-                <p className={hospitalDetailsText ? '' : 'empty'}>
-                  {hospitalDetailsText || 'No hospital details available.'}
+                <h3>Patient Details</h3>
+                <p className={patientDetailsText ? '' : 'empty'}>
+                  {patientDetailsText || 'No patient details available.'}
                 </p>
               </div>
 
@@ -488,7 +406,7 @@ export default function App() {
         </div>
       </section>
 
-      <HistoryPanel key={historyTick} onLoadEntry={loadHistoryEntry} />
+      <HistoryPanel key={historyTick} />
     </div>
   );
 }
