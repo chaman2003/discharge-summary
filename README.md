@@ -67,7 +67,7 @@ The summarization prompt is server-only (`server/internalPrompt.js`) and never s
 | `GET/PUT/DELETE /api/history/:id` | Read, update, or delete a session |
 | `GET /api/history/:id/audio` | Download saved recording |
 
-Recorded sessions are stored under `data/history/` (not gitignored).
+Recorded sessions are stored under `data/history/` locally (session files are gitignored).
 
 ## Environment
 
@@ -81,30 +81,22 @@ In Docker, set variables via `discharge-summary/.env` (used by Compose) or `-e` 
 
 ## Docker
 
-From this folder:
+**Docker Hub:** `chaman2003/discharge-summary:latest`
+
+From this folder with Compose:
 
 ```bash
 cp .env.example .env   # set GEMINI_API_KEY
 docker compose up --build
 ```
 
-Open:
-
-```
-http://localhost:8787/
-```
-
-History is persisted in the `discharge-history` Docker volume.
-
-Build/run without Compose:
+Pull and run from Docker Hub:
 
 ```bash
-docker build -t discharge-summary .
 docker run --rm -p 8787:8787 \
   -e GEMINI_API_KEY=your-key \
-  -e PORT=8787 \
   -v discharge-history:/app/data/history \
-  discharge-summary
+  chaman2003/discharge-summary:latest
 ```
 
 Health check: `GET /api/health`
@@ -114,10 +106,12 @@ Health check: `GET /api/health`
 ```
 discharge-summary/
   server/           # Express + WebSocket + Gemini
-  data/history/     # Saved recordings + transcripts (CRUD)
+  data/history/     # Saved recordings + transcripts (local, gitignored)
   src/              # React UI
   public/           # Audio worklet
   dist/             # Vite build (created by npm run build)
+  Dockerfile        # Production image
+  docker-compose.yml
 ```
 
 This app is **not** mounted on the main voice-agent backend anymore.
