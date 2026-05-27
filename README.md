@@ -109,7 +109,31 @@ docker run --rm -p 8787:8787 \
 
 Health check: `GET /api/health`
 
-## Project layout
+## Vercel
+
+Deploy this folder as a Vercel project (root directory = repository root).
+
+1. Import `https://github.com/chaman2003/discharge-summary` in Vercel.
+2. Set environment variable **`GEMINI_API_KEY`** in Project → Settings → Environment Variables.
+3. Deploy (build runs `npm run build`; static app served from `dist/`, API from `api/index.js`).
+
+Open your deployment at:
+
+```
+https://your-project.vercel.app/
+```
+
+**Notes for Vercel**
+
+| Feature | On Vercel |
+|---------|-----------|
+| UI, upload, summarize, PDF | Works |
+| REST API (`/api/*`) | Works via serverless Express |
+| History | Stored in `/tmp` (ephemeral — sessions may not persist across cold starts) |
+| **Live recording (WebSocket)** | **Not supported** on Vercel serverless — use Docker/`npm start` locally or on a VPS for live transcription |
+
+Optional: link the Git repo for automatic deploys on push to `main`.
+
 
 ```
 discharge-summary/
