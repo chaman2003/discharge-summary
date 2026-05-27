@@ -39,6 +39,39 @@ function summarySections(summary, hospital) {
   ];
 }
 
+function buildSummaryDoc(summary, hospital) {
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const margin = 14;
+  const maxW = doc.internal.pageSize.getWidth() - margin * 2;
+  let y = margin;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('Discharge Summary', margin, y);
+  y += 8;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  y = addWrapped(doc, `Generated: ${new Date().toLocaleString()}`, margin, y, maxW, 5);
+  y += 4;
+
+  summarySections(summary, hospital).forEach(([title, body]) => {
+    if (!body) return;
+    if (y > doc.internal.pageSize.getHeight() - 30) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(title, margin, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    y = addWrapped(doc, body, margin, y, maxW, 5);
+    y += 4;
+  });
+
+  return doc;
+}
+
 export function downloadTranscriptPdf(transcript, hospital) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const margin = 14;
@@ -70,74 +103,44 @@ export function downloadTranscriptPdf(transcript, hospital) {
 }
 
 export function downloadSummaryPdf(summary, hospital) {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const margin = 14;
-  const maxW = doc.internal.pageSize.getWidth() - margin * 2;
-  let y = margin;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('Discharge Summary', margin, y);
-  y += 8;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  y = addWrapped(doc, `Generated: ${new Date().toLocaleString()}`, margin, y, maxW, 5);
-  y += 4;
-
-  summarySections(summary, hospital).forEach(([title, body]) => {
-    if (!body) return;
-    if (y > doc.internal.pageSize.getHeight() - 30) {
-      doc.addPage();
-      y = margin;
-    }
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text(title, margin, y);
-    y += 5;
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    y = addWrapped(doc, body, margin, y, maxW, 5);
-    y += 4;
-  });
-
+  const doc = buildSummaryDoc(summary, hospital);
   const name = (hospital.patient_name || 'summary').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-') || 'summary';
   doc.save(`${name}-discharge-summary.pdf`);
 }
 
 export function printSummary(summary, hospital) {
-  const sections = summarySections(summary, hospital).filter(([, body]) => body);
-  if (!sections.length) return;
+  const doc = buildSummaryDoc(summary, hospital);
+  const hasContent = summarySections(summary, hospital).some(([, body]) => body);
+  if (!hasContent) return;
 
-  const html = `<!doctype html>
-<html><head><title>Discharge Summary</title>
-<style>
-  body { font-family: Georgia, "Times New Roman", serif; color: #111; margin: 24px; line-height: 1.55; }
-  h1 { font-size: 22px; margin: 0 0 6px; }
-  .meta { color: #555; font-size: 12px; margin-bottom: 20px; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: #0f766e; margin: 18px 0 6px; }
-  p { margin: 0 0 10px; white-space: pre-wrap; font-size: 14px; }
-  @media print { body { margin: 12mm; } }
-</style></head><body>
-  <h1>Discharge Summary</h1>
-  <div class="meta">Generated: ${new Date().toLocaleString()}${hospital.patient_name ? ` · Patient: ${hospital.patient_name}` : ''}</div>
-  ${sections.map(([title, body]) => `<h2>${title}</h2><p>${escapeHtml(body)}</p>`).join('')}
-</body></html>`;
+  doc.autoPrint();
+  const url = doc.output('bloburl');
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.title = 'Discharge summary print preview';
+  iframe.src = url;
+  document.body.appendChild(iframe);
 
-  const win = window.open('', '_blank', 'noopener,noreferrer');
-  if (!win) return;
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  win.onload = () => {
-    win.print();
-    win.onafterprint = () => win.close();
+  const cleanup = () => {
+    iframe.remove();
+    if (typeof url === 'string' && url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
   };
-}
 
-function escapeHtml(text) {
-  return String(text || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  iframe.onload = () => {
+    window.setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } finally {
+        window.setTimeout(cleanup, 1000);
+      }
+    }, 300);
+  };
 }

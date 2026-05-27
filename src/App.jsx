@@ -263,10 +263,17 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <div className="app-header-text">
+          <p className="app-kicker">Clinical documentation</p>
           <h1>Discharge Summary</h1>
-          <p>Record clinical notes, optionally attach a reference document, and generate a structured discharge summary.</p>
+          <p>Record notes, attach a reference file, and generate a structured discharge summary.</p>
         </div>
-        <span className="app-badge">Clinical notes</span>
+        <div className="app-header-brand">
+          <img
+            src="/audio-processors/image.png"
+            alt="Cortex Craft.AI"
+            className="app-header-logo"
+          />
+        </div>
       </header>
 
       <section className="card">
@@ -274,68 +281,72 @@ export default function App() {
           <h2><span className="step-num">1</span> Hospital details</h2>
         </div>
         <div className="card-body">
-          <p className="subsection-title">Facility &amp; patient</p>
-          <div className="grid two">
-            <label>
-              Hospital name
-              <input value={hospital.hospital_name} onChange={(e) => setHospital({ ...hospital, hospital_name: e.target.value })} />
-            </label>
-            <label>
-              Patient name
-              <input value={hospital.patient_name} onChange={(e) => setHospital({ ...hospital, patient_name: e.target.value })} />
-            </label>
-            <label>
-              Consulting doctor
-              <input value={hospital.consulting_doctor} onChange={(e) => setHospital({ ...hospital, consulting_doctor: e.target.value })} />
-            </label>
-            <label>
-              Department
-              <input value={hospital.department} onChange={(e) => setHospital({ ...hospital, department: e.target.value })} />
-            </label>
-            <label>
-              Condition / diagnosis
-              <input
-                value={hospital.condition}
-                onChange={(e) => setHospital({ ...hospital, condition: e.target.value })}
-                placeholder={CONDITION_PLACEHOLDER}
-              />
-            </label>
-            <label>
-              Age
-              <select value={hospital.age} onChange={(e) => setHospital({ ...hospital, age: e.target.value })}>
-                {AGE_OPTIONS.map((age) => (
-                  <option key={age} value={age}>{age}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Blood group
-              <select value={hospital.blood_group} onChange={(e) => setHospital({ ...hospital, blood_group: e.target.value })}>
-                {BLOOD_GROUP_OPTIONS.map((group) => (
-                  <option key={group} value={group}>{group}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Gender
-              <select value={hospital.gender} onChange={(e) => setHospital({ ...hospital, gender: e.target.value })}>
-                {GENDER_OPTIONS.map((gender) => (
-                  <option key={gender} value={gender}>{gender}</option>
-                ))}
-              </select>
-            </label>
+          <div className="form-section">
+            <h3 className="subsection-title">Facility &amp; patient</h3>
+            <div className="form-grid">
+              <label>
+                Hospital name
+                <input value={hospital.hospital_name} onChange={(e) => setHospital({ ...hospital, hospital_name: e.target.value })} />
+              </label>
+              <label>
+                Patient name
+                <input value={hospital.patient_name} onChange={(e) => setHospital({ ...hospital, patient_name: e.target.value })} />
+              </label>
+              <label>
+                Consulting doctor
+                <input value={hospital.consulting_doctor} onChange={(e) => setHospital({ ...hospital, consulting_doctor: e.target.value })} />
+              </label>
+              <label>
+                Department
+                <input value={hospital.department} onChange={(e) => setHospital({ ...hospital, department: e.target.value })} />
+              </label>
+              <label className="span-full">
+                Condition / diagnosis
+                <input
+                  value={hospital.condition}
+                  onChange={(e) => setHospital({ ...hospital, condition: e.target.value })}
+                  placeholder={CONDITION_PLACEHOLDER}
+                />
+              </label>
+              <label className="compact">
+                Age
+                <select value={hospital.age} onChange={(e) => setHospital({ ...hospital, age: e.target.value })}>
+                  {AGE_OPTIONS.map((age) => (
+                    <option key={age} value={age}>{age}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="compact">
+                Blood group
+                <select value={hospital.blood_group} onChange={(e) => setHospital({ ...hospital, blood_group: e.target.value })}>
+                  {BLOOD_GROUP_OPTIONS.map((group) => (
+                    <option key={group} value={group}>{group}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="compact">
+                Gender
+                <select value={hospital.gender} onChange={(e) => setHospital({ ...hospital, gender: e.target.value })}>
+                  {GENDER_OPTIONS.map((gender) => (
+                    <option key={gender} value={gender}>{gender}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
 
-          <p className="subsection-title">Dates</p>
-          <div className="grid two">
-            <label>
-              Admission date
-              <input type="date" value={hospital.admission_date} onChange={(e) => setHospital({ ...hospital, admission_date: e.target.value })} />
-            </label>
-            <label>
-              Discharge date
-              <input type="date" value={hospital.discharge_date} onChange={(e) => setHospital({ ...hospital, discharge_date: e.target.value })} />
-            </label>
+          <div className="form-section">
+            <h3 className="subsection-title">Dates</h3>
+            <div className="form-grid dates-grid">
+              <label>
+                Admission date
+                <input type="date" value={hospital.admission_date} onChange={(e) => setHospital({ ...hospital, admission_date: e.target.value })} />
+              </label>
+              <label>
+                Discharge date
+                <input type="date" value={hospital.discharge_date} onChange={(e) => setHospital({ ...hospital, discharge_date: e.target.value })} />
+              </label>
+            </div>
           </div>
         </div>
       </section>
