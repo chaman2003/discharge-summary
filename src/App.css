@@ -72,14 +72,6 @@ body {
   box-shadow: none;
 }
 
-.app-header-logo {
-  display: block;
-  height: 42px;
-  width: auto;
-  max-width: 180px;
-  object-fit: contain;
-}
-
 .app-kicker {
   margin: 0 0 6px;
   font-size: 0.72rem;
@@ -624,11 +616,6 @@ button:disabled,
   .app-header-brand {
     align-self: center;
     padding: 0;
-  }
-
-  .app-header-logo {
-    height: 34px;
-    max-width: 150px;
   }
 
   .app-header-text h1 {

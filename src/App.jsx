@@ -194,13 +194,6 @@ export default function App() {
           <h1>Discharge Summary</h1>
           <p>Record notes, attach a reference file, and generate a structured discharge summary.</p>
         </div>
-        <div className="app-header-brand">
-          <img
-            src="/audio-processors/image.png"
-            alt="Cortex Craft.AI"
-            className="app-header-logo"
-          />
-        </div>
       </header>
 
       <section className="card">
